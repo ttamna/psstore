@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+# Twitter app key
 consumer_key = ''
 consumer_secret = ''
 
