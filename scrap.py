@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup as Soup
 
 import secret
 
-hyeja_format = """[HYEJA] : {title}
+hyeja_format = u"""[HYEJA] : {title}
   - {url}
   할인전 : {price_before}
   할인후 : {price_after} ({dr}%)
@@ -67,8 +67,8 @@ def query_ifitis_heyja(url):
 
     _sale = soup.select_one('.price-display__price__label').get_text()
     sale = int(re.search('\d+', _sale).group())
-    if sale > 30:
-        return True, sale
+    if True:#sale > 30:
+        return True, sale*1
     return False, 0
 
 def scrape(url):
@@ -115,7 +115,7 @@ def scrape(url):
                 price_before=price_before,
                 price_after=price_after,
                 dr=dr, psn_dr = psn_dr,
-                price_after_psn= price_before*(final_dr/100),
+                price_after_psn= price_before-(price_before*(final_dr/100.0)),
                 final_dr=final_dr
             )
             print(msg)
