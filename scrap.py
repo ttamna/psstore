@@ -20,7 +20,6 @@ def error_safe_print(msg):
     except (IOError, UnicodeEncodeError):
         pass
 
-
 #################### about output format ####################
 html_format = u"""<!DOCTYPE html>
 <html>
@@ -55,9 +54,7 @@ hyeja_format = u"""
     <div>userscore: {userscore}</div>
   </div>
   </a>
-""" 
-# 할인율은 뱃지로 표현하는게 좋을듯
-
+""" # TODO: 할인율은 뱃지로 표현하는게 좋을듯
 
 def to_html_grid_format(divs):
     n_cells = 6
@@ -71,6 +68,7 @@ def to_html_grid_format(divs):
     return ret_grid_format
 
 #################### about output format ####################
+
 
 #################### about metacritic score ####################
 # TODO: goty 여부도 표시하면 좋을듯
@@ -129,6 +127,12 @@ meta_visited = {}
 google_searched = {}
 url_title_map = {}
 def get_metascore(ko_game_url):
+    """ metascore, userscore 알아내서 반환, 못알아내면, (-1, -1) 반환
+    
+    :param ko_game_url: game url(psn_korea)
+    :type ko_game_url: str
+    """
+    # ko_game_url to title
     if ko_game_url not in url_title_map.keys():
         title = get_en_title_name(ko_game_url)
         url_title_map[ko_game_url] = title
@@ -137,6 +141,7 @@ def get_metascore(ko_game_url):
     if title == u'':
         return (-1, -1)
 
+    # title to metacritic link
     if title not in google_searched.keys():
         error_safe_print(u"[+] {}의 metacritic 페이지를 검색하는 중..".format(title))
         metalink = get_metalink_from_google(title+u" metacritic")
@@ -146,6 +151,7 @@ def get_metascore(ko_game_url):
     if metalink == "":
         return (-1, -1)
 
+    # metalink to (metascore, userscore)
     if metalink not in meta_visited.keys():
         error_safe_print(u"[+] {}의 metacritic 점수를 확인하는 중..".format(title))
         ms, us = get_metainfo_from_metapage(metalink)
@@ -231,22 +237,19 @@ def scrap(url):
             continue
         dr = dr.get_text() # discount
         dr = int(re.search('\d+', dr).group())
-        price_before = card.select_one('.price').get_text() # before discount
-        price_after = card.select_one('.price-display__price').get_text()
+        
         title = card.select_one('.grid-cell__title').get_text()
-
-        price_before = get_reg_price(price_before)
-        price_after = get_reg_price(price_after)
-
+        price_before = get_reg_price(card.select_one('.price').get_text()) # before discount
+        price_after = get_reg_price(card.select_one('.price-display__price').get_text()) # after discount
         game_link = urljoin(url, card.select_one('.internal-app-link').get('href'))
         
         metascore, userscore = get_metascore(game_link) # 메타크리틱 점수 확인
         if metascore < 70 or userscore < 7:
-        #if metascore == -1 or userscore == -1:
             continue
 
         is_heyja, psn_dr = query_ifitis_heyja(game_link)
-        final_dr = dr+psn_dr
+        final_dr = dr + psn_dr
+
         if is_heyja or final_dr >= 50:
             img_url = urljoin(url, card.select('img')[1].get('src'))
 
