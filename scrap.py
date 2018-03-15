@@ -13,7 +13,6 @@ from bs4 import BeautifulSoup as Soup
 import secret
 
 
-
 def error_safe_print(msg):
     try:
         print(msg)
@@ -29,9 +28,34 @@ html_format = u"""<!DOCTYPE html>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
     <!-- 부가적인 테마 -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap-theme.min.css">
+    <style>
+    img {{
+      max-width:100%;
+      max-height:100%;
+    }}
+    .rrow {{
+      height:375px;
+    }}
+    .grid-cell {{
+        padding:10px;
+        background-color:#262b34;
+        color:#fefefe;
+        height:345px;
+        margin-top:10px;
+    }}
+    .price {{
+        color:#B3B3B3;
+    }}
+    .price_psn {{
+        color:#FFC926;
+    }}
+    .psn_bg {{
+        background-color:#002055;
+    }}
+    </style>
 <head>
 <body>
-<div class="container" style="background-color:#002055;">
+<div class="container psn_bg">
   {body_content}
 </div>
 
@@ -43,24 +67,27 @@ html_format = u"""<!DOCTYPE html>
 
 
 hyeja_format = u"""
+  <div class="col-lg-2 col-md-2 col-sm-4 col-xs-4 text-center">
   <a href="{url}">
-  <div class="col-md-3 text-center" style="padding:0px;width:160px;height:304px;background-color:#262b34;color:#fefefe;margin-right:15px;margin-left:15px;">
-    <div><img src="{img_url}"/></div>
-    <div>{title}</div>
-    <div style="color:#B3B3B3;"><strike>{price_before}</strike></div>
-    <div style="color:#B3B3B3;">{price_after} ({dr}%)</div>
-    <div style="color:#FFC926;">{price_after_psn} ({final_dr}%, PSN:{psn_dr}%)</div>
-    <div>metascore: {metascore}</div>
-    <div>userscore: {userscore}</div>
-  </div>
+    <div class="grid-cell">
+        <div><img src="{img_url}"/></div>
+        <div>{title}</div>
+        <div class="price"><strike>{price_before}</strike></div>
+        <div class="price">{price_after} ({dr}%)</div>
+        <div class="price_psn">{price_after_psn} ({final_dr}%, PSN:{psn_dr}%)</div>
+        <div>metascore: {metascore}</div>
+        <div>userscore: {userscore}</div>
+    </div>
   </a>
+  </div>
+
 """ # TODO: 할인율은 뱃지로 표현하는게 좋을듯
 
 def to_html_grid_format(divs):
     n_cells = 6
 
     ret_grid_format = ""
-    row = u'<div class="row" style="margin-bottom:1em;">{cells}</div>\n'
+    row = u'<div class="row rrow">{cells}</div>\n'
     div_len = len(divs)
     for i in range(0, div_len, n_cells):
         ret_grid_format += row.format(cells=u"".join(divs[i:min(div_len-1, i+n_cells)]))
@@ -277,7 +304,7 @@ def scrap(url):
 
 def main():
     url = 'https://store.playstation.com/ko-kr/grid/STORE-MSF86012-SPECIALOFFER/1'
-      
+    
     hyejas = scrap(url)
     body_content = to_html_grid_format(hyejas)
 
