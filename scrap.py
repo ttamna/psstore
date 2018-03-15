@@ -3,6 +3,7 @@ from __future__ import print_function
 
 import re
 import codecs
+import hashlib
 import datetime
 
 import tweepy
@@ -307,13 +308,16 @@ def main():
     
     hyejas = scrap(url)
     body_content = to_html_grid_format(hyejas)
+    content = html_format.format(body_content=body_content)
 
+    dg = hashlib.md5(content.encode('utf-8')).hexdigest()
     time_format_now = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S%m")
-    result_fn = time_format_now+"_psstore.html"
-    with codecs.open(result_fn, "w", encoding='utf8') as f:
-        f.write(html_format.format(body_content=body_content))
+    result_fn = "{}_{}_psstore.html".format(time_format_now, dg)
     
-    error_safe_print("Complete")
+    with codecs.open(result_fn, "w", encoding='utf8') as f:
+        f.write(content)
+    
+    error_safe_print("[*] Complete")
 
 
 if __name__ == "__main__":
