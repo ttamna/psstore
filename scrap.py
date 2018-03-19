@@ -53,6 +53,9 @@ html_format = u"""<!DOCTYPE html>
     .psn_bg {{
         background-color:#002055;
     }}
+    .metastyle {{
+        background-color:#6c3;
+    }}
     </style>
 <head>
 <body>
@@ -76,8 +79,8 @@ hyeja_format = u"""
         <div class="price"><strike>{price_before}</strike></div>
         <div class="price">{price_after} ({dr}%)</div>
         <div class="price_psn">{price_after_psn} ({final_dr}%, PSN:{psn_dr}%)</div>
-        <div>metascore: {metascore}</div>
-        <div>userscore: {userscore}</div>
+        <div>metascore: <span class="metastyle"><strong>{metascore}</strong></span></div>
+        <div>userscore: <span>{userscore}</span></div>
     </div>
   </a>
   </div>
@@ -242,6 +245,7 @@ def query_ifitis_heyja(url):
         return True, sale
     return False, sale
 
+
 def scrap(url):
     """ 할인 페이지 요청, 파싱 시작하고, 좋은 가격이면 알림
     
@@ -280,20 +284,16 @@ def scrap(url):
 
         if is_heyja or final_dr >= 50:
             img_url = urljoin(url, card.select('img')[1].get('src'))
-
-            div_element = hyeja_format.format(
-                title=title,
-                url=game_link,
-                price_before=price_before,
-                price_after=price_after,
-                dr=dr, psn_dr = psn_dr,
-                price_after_psn= int(price_before-(price_before*(final_dr/100.0))),
-                final_dr=final_dr,
-                img_url=img_url,
-                metascore=metascore, userscore=userscore
-            )
+            price_after_psn = int(price_before-(price_before*(final_dr/100.0)))
+            div_element = {
+                "title":title, "url":url, 
+                "dr":dr, "psn_dr":psn_dr, "final_dr": final_dr,
+                "price_before":price_before, "price_after":price_after, 
+                "price_after_psn": price_after_psn, "img_url": img_url, 
+                "metascore":metascore, "userscore":userscore
+            }
             ret_hyejas.append(div_element)
-        
+    
     # continue to next page
     next_p = soup.find(class_="paginator-control__next")
 
@@ -307,6 +307,9 @@ def main():
     url = 'https://store.playstation.com/ko-kr/grid/STORE-MSF86012-SPECIALOFFER/1'
     
     hyejas = scrap(url)
+    hyejas = sorted(hyejas, key=lambda x: x["metascore"], reverse=True)
+    hyejas = map(lambda x: hyeja_format.format(**x) , hyejas)
+    
     body_content = to_html_grid_format(hyejas)
     content = html_format.format(body_content=body_content)
 
