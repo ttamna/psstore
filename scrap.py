@@ -286,7 +286,7 @@ def scrap(url):
             img_url = urljoin(url, card.select('img')[1].get('src'))
             price_after_psn = int(price_before-(price_before*(final_dr/100.0)))
             div_element = {
-                "title":title, "url":url, 
+                "title":title, "url":game_link, 
                 "dr":dr, "psn_dr":psn_dr, "final_dr": final_dr,
                 "price_before":price_before, "price_after":price_after, 
                 "price_after_psn": price_after_psn, "img_url": img_url, 
