@@ -5,6 +5,7 @@ import re
 import codecs
 import hashlib
 import datetime
+import asyncio
 
 import tweepy
 import requests
@@ -87,7 +88,7 @@ hyeja_format = u"""
 
 """ # TODO: 할인율은 뱃지로 표현하는게 좋을듯
 
-def to_html_grid_format(divs):
+async def to_html_grid_format(divs):
     n_cells = 6
 
     ret_grid_format = ""
@@ -110,7 +111,7 @@ def to_html_grid_format(divs):
 
 header = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_8_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.116 Safari/537.36', "Connection":"close"}
 
-def get_en_title_name(ko_game_url):
+async def get_en_title_name(ko_game_url):
     # get english title name
     en_game_url = ko_game_url.replace('ko-kr', 'en-us')
     res = requests.get(en_game_url, headers={"Connection":"close"})
@@ -123,7 +124,7 @@ def get_en_title_name(ko_game_url):
     title = t_.get('content')
     return title
 
-def get_metalink_from_google(searchfor):
+async def get_metalink_from_google(searchfor):
     link = 'https://google.co.kr/search'    
     payload = {'q': searchfor}
     res = requests.get(link, headers=header, params=payload)
@@ -136,7 +137,7 @@ def get_metalink_from_google(searchfor):
             return url
     return ''
 
-def get_metainfo_from_metapage(metalink):
+async def get_metainfo_from_metapage(metalink):
     res = requests.get(metalink, headers=header)
     if res.status_code != 200: return ''
 
@@ -148,7 +149,7 @@ def get_metainfo_from_metapage(metalink):
     except (ValueError, AttributeError):
         metascore = -1
     try:
-        userscore = userscore.get_text()
+        userscore = int(userscore.get_text())
     except (ValueError, AttributeError):
         userscore = -1
 
@@ -157,7 +158,7 @@ def get_metainfo_from_metapage(metalink):
 meta_visited = {}
 google_searched = {}
 url_title_map = {}
-def get_metascore(ko_game_url):
+async def get_metascore(ko_game_url):
     """ metascore, userscore 알아내서 반환, 못알아내면, (-1, -1) 반환
     
     :param ko_game_url: game url(psn_korea)
@@ -165,7 +166,7 @@ def get_metascore(ko_game_url):
     """
     # ko_game_url to title
     if ko_game_url not in url_title_map.keys():
-        title = get_en_title_name(ko_game_url)
+        title = await get_en_title_name(ko_game_url)
         url_title_map[ko_game_url] = title
     else:
         title = url_title_map[ko_game_url]
@@ -175,7 +176,7 @@ def get_metascore(ko_game_url):
     # title to metacritic link
     if title not in google_searched.keys():
         error_safe_print(u"[+] {}의 metacritic 페이지를 검색하는 중..".format(title))
-        metalink = get_metalink_from_google(title+u" metacritic")
+        metalink = await get_metalink_from_google(title+u" metacritic")
         google_searched[title] = metalink
     else:
         metalink = google_searched[title]
@@ -185,7 +186,7 @@ def get_metascore(ko_game_url):
     # metalink to (metascore, userscore)
     if metalink not in meta_visited.keys():
         error_safe_print(u"[+] {}의 metacritic 점수를 확인하는 중..".format(title))
-        ms, us = get_metainfo_from_metapage(metalink)
+        ms, us = await get_metainfo_from_metapage(metalink)
         meta_visited[metalink]= (ms, us)
     else:
         ms, us = meta_visited[metalink]
@@ -217,7 +218,7 @@ def get_reg_price(price_str):
     price_int = int(re.search('\d+', _pr).group())
     return price_int
 
-def query_ifitis_heyja(url):
+async def query_ifitis_heyja(url):
     """ psn 회원 추가할인율이 높은지 검사
 
     호라이즌 제로던 사례:
@@ -246,7 +247,7 @@ def query_ifitis_heyja(url):
     return False, sale
 
 
-def scrap(url):
+async def scrap(url):
     """ 할인 페이지 요청, 파싱 시작하고, 좋은 가격이면 알림
     
     할인페이지는 페이지당 타이틀 30개 최대임.
@@ -275,11 +276,11 @@ def scrap(url):
         price_after = get_reg_price(card.select_one('.price-display__price').get_text()) # after discount
         game_link = urljoin(url, card.select_one('.internal-app-link').get('href'))
         
-        metascore, userscore = get_metascore(game_link) # 메타크리틱 점수 확인
+        metascore, userscore = await get_metascore(game_link) # 메타크리틱 점수 확인
         if metascore < 70 or userscore < 7:
             continue
 
-        is_heyja, psn_dr = query_ifitis_heyja(game_link)
+        is_heyja, psn_dr = await query_ifitis_heyja(game_link)
         final_dr = dr + psn_dr
 
         if is_heyja or final_dr >= 50:
@@ -299,18 +300,18 @@ def scrap(url):
 
     if (next_p is not None) and ('paginator-control__arrow-navigation--disabled' not in next_p.get('class')):
         next_p = urljoin(url, next_p.get('href'))
-        return ret_hyejas + scrap(next_p)
+        return ret_hyejas + await scrap(next_p)
     else:
         return ret_hyejas
 
-def main():
+async def main():
     url = 'https://store.playstation.com/ko-kr/grid/STORE-MSF86012-SPECIALOFFER/1'
     
-    hyejas = scrap(url)
+    hyejas = await scrap(url)
     hyejas = sorted(hyejas, key=lambda x: x["metascore"]+x["userscore"]*10, reverse=True)
-    hyejas = map(lambda x: hyeja_format.format(**x) , hyejas)
+    hyejas = list(map(lambda x: hyeja_format.format(**x), hyejas))
     
-    body_content = to_html_grid_format(hyejas)
+    body_content = await to_html_grid_format(hyejas)
     content = html_format.format(body_content=body_content)
 
     dg = hashlib.md5(content.encode('utf-8')).hexdigest()
@@ -324,4 +325,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    import time
+    start = time.time()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
+    loop.close()
+    print(time.time()-start)
