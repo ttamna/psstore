@@ -307,7 +307,7 @@ def main():
     url = 'https://store.playstation.com/ko-kr/grid/STORE-MSF86012-SPECIALOFFER/1'
     
     hyejas = scrap(url)
-    hyejas = sorted(hyejas, key=lambda x: x["metascore"], reverse=True)
+    hyejas = sorted(hyejas, key=lambda x: x["metascore"]+x["userscore"]*10, reverse=True)
     hyejas = map(lambda x: hyeja_format.format(**x) , hyejas)
     
     body_content = to_html_grid_format(hyejas)
